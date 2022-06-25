@@ -49,34 +49,36 @@ function walk(treeWalker) {
   return nodes;
 }
 
-exports.parseFromString = elementCtor => attributeCtor => textCtor => commentCtor => input => {
-  function mapNode(node) {
-    if (node.type == "element") {
-      return elementCtor({
-        name: node.name,
-        attributes: node.attributes.map(([k, v]) => attributeCtor(k)(v)),
-        children: node.children.map(mapNode)
-      });
-    } else {
-      var ctor = node.type == "text" ? textCtor : commentCtor;
-      return ctor(node.text);
+export function parseFromString(elementCtor) {
+  return attributeCtor => textCtor => commentCtor => input => {
+    function mapNode(node) {
+      if (node.type == "element") {
+        return elementCtor({
+          name: node.name,
+          attributes: node.attributes.map(([k, v]) => attributeCtor(k)(v)),
+          children: node.children.map(mapNode)
+        });
+      } else {
+        var ctor = node.type == "text" ? textCtor : commentCtor;
+        return ctor(node.text);
+      }
     }
-  }
 
-  var doc = new DOMParser().parseFromString(input, "text/html");
-  var headNodes = walk(
-    doc.createTreeWalker(doc.documentElement.querySelector("head"))
-  );
-  var bodyNodes = walk(
-    doc.createTreeWalker(doc.documentElement.querySelector("body"))
-  );
+    var doc = new DOMParser().parseFromString(input, "text/html");
+    var headNodes = walk(
+      doc.createTreeWalker(doc.documentElement.querySelector("head"))
+    );
+    var bodyNodes = walk(
+      doc.createTreeWalker(doc.documentElement.querySelector("body"))
+    );
 
-  return [...headNodes, ...bodyNodes].map(node => {
-    if (node.type == "element") {
-      return mapNode(node);
-    } else {
-      var ctor = node.type == "text" ? textCtor : commentCtor;
-      return ctor(node.text);
-    }
-  });
-};
+    return [...headNodes, ...bodyNodes].map(node => {
+      if (node.type == "element") {
+        return mapNode(node);
+      } else {
+        var ctor = node.type == "text" ? textCtor : commentCtor;
+        return ctor(node.text);
+      }
+    });
+  };
+}
